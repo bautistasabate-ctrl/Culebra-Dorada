@@ -1,5 +1,17 @@
-<title>Culebra</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Culebra Dorada | Juego de la viborita online gratis</title>
+<meta name="description" content="Jugá gratis a Culebra Dorada, un juego de la viborita online con gráficos animados, fruta dorada y sonidos. Funciona en celular y compu, sin descargar nada.">
+<link rel="canonical" href="https://bautistasabate-ctrl.github.io/Culebra-Dorada/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="es_AR">
+<meta property="og:title" content="Culebra Dorada | Juego de la viborita online gratis">
+<meta property="og:description" content="Comé manzanas, conseguí la fruta dorada y batí tu récord. Gratis, en celular y compu.">
+<meta property="og:url" content="https://bautistasabate-ctrl.github.io/Culebra-Dorada/">
+<meta name="theme-color" content="#07150e">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
@@ -22,6 +34,11 @@
     --font-body: "Inter", system-ui, sans-serif;
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; }
+  .about { color: var(--muted); font-size: 0.85rem; line-height: 1.5; text-align: center; padding-top: 6px; }
+  .about h2 { font-family: var(--font-display); font-size: 1.05rem; color: var(--fg); margin: 0 0 6px; }
+  .about p { margin: 0; }
   body {
     background-color: var(--bg);
     background-image:
@@ -165,7 +182,8 @@
   }
   @media (prefers-reduced-motion: reduce) { .primary { transition: none; } }
 </style>
-
+</head>
+<body>
 <main>
   <header>
     <h1>Culebra</h1>
@@ -198,6 +216,10 @@
     <p class="hint">Flechas o WASD. Espacio para empezar. En el celular, deslizá sobre el tablero.</p>
     <button class="ghost" id="snd" type="button">Sonido: sí</button>
   </div>
+  <section class="about">
+    <h2>Juego de la viborita online y gratis</h2>
+    <p>Culebra Dorada es una versión moderna del clásico juego de la serpiente. Comé manzanas para crecer, conseguí la fruta dorada que aparece cada cinco manzanas y evitá chocar con las paredes o con tu propia cola. Se juega con las flechas del teclado, con WASD o deslizando el dedo en el celular, sin descargar nada.</p>
+  </section>
 </main>
 
 <script>
@@ -608,3 +630,5 @@
   requestAnimationFrame(frame);
 })();
 </script>
+</body>
+</html>
