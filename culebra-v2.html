@@ -1,0 +1,610 @@
+<title>Culebra</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* Layout: una columna centrada. Título y puntajes arriba, tablero con marco luminoso, cruceta táctil abajo. Look nocturno de jardín, a propósito de un solo tema. */
+  :root {
+    color-scheme: dark;
+    --bg: #07150e;
+    --bg-glow: #12402a;
+    --panel: #0e2519;
+    --fg: #eaf7ee;
+    --muted: #8fb09c;
+    --lime: #a6f26b;
+    --gold: #ffc93d;
+    --apple: #ff4d4d;
+    --frame: #0a2a19;
+    --btn: rgba(255, 255, 255, 0.06);
+    --btn-border: rgba(166, 242, 107, 0.22);
+    --font-display: "Fredoka", system-ui, sans-serif;
+    --font-body: "Inter", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(900px 500px at 50% -10%, var(--bg-glow), transparent 70%),
+      radial-gradient(600px 400px at 100% 100%, rgba(255, 201, 61, 0.08), transparent 70%);
+    background-attachment: fixed;
+    color: var(--fg);
+    font-family: var(--font-body);
+    font-size: 16px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 18px 28px;
+    min-height: 100vh;
+  }
+  main {
+    max-width: 480px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 2.3rem;
+    line-height: 1;
+    letter-spacing: 0.01em;
+    margin: 0;
+    background: linear-gradient(100deg, var(--lime), var(--gold));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-wrap: balance;
+  }
+  .scores { display: flex; gap: 10px; font-variant-numeric: tabular-nums; }
+  .chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 76px;
+    padding: 6px 12px;
+    border-radius: 14px;
+    background: var(--panel);
+    border: 1px solid var(--btn-border);
+  }
+  .chip span { font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .chip b { font-family: var(--font-display); font-size: 1.5rem; line-height: 1.1; }
+  .chip.gold b { color: var(--gold); }
+
+  .board-wrap {
+    position: relative;
+    border-radius: 18px;
+    padding: 6px;
+    background: linear-gradient(145deg, #1c5a38, #0a2a19);
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 0 44px rgba(166, 242, 107, 0.14);
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    aspect-ratio: 1;
+    background: #0b2416;
+    border-radius: 13px;
+    touch-action: none;
+  }
+  .overlay {
+    position: absolute;
+    inset: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    text-align: center;
+    padding: 24px;
+    border-radius: 13px;
+    background: rgba(5, 18, 11, 0.62);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+  }
+  .overlay h2 {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    margin: 0;
+    text-wrap: balance;
+    background: linear-gradient(100deg, var(--lime), var(--gold));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .overlay p { margin: 0; color: #cfe6d6; font-size: 0.98rem; max-width: 30ch; line-height: 1.4; }
+  .legend { display: flex; gap: 14px; font-size: 0.82rem; color: var(--muted); flex-wrap: wrap; justify-content: center; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+
+  button { font: inherit; cursor: pointer; color: var(--fg); }
+  .primary {
+    background: linear-gradient(180deg, #ffd864, #f5a91c);
+    color: #2b1b00;
+    border: 0;
+    border-radius: 999px;
+    padding: 12px 30px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.1rem;
+    box-shadow: 0 6px 0 #a76a07, 0 10px 24px rgba(245, 169, 28, 0.35);
+    transition: transform 0.08s, box-shadow 0.08s;
+  }
+  .primary:active { transform: translateY(4px); box-shadow: 0 2px 0 #a76a07, 0 4px 12px rgba(245, 169, 28, 0.3); }
+  button:focus-visible { outline: 3px solid var(--lime); outline-offset: 3px; }
+
+  .pad {
+    display: grid;
+    grid-template-columns: repeat(3, 68px);
+    grid-template-rows: repeat(2, 58px);
+    gap: 8px;
+    justify-content: center;
+  }
+  .pad button {
+    background: var(--btn);
+    border: 1px solid var(--btn-border);
+    border-radius: 16px;
+    font-size: 1.3rem;
+    touch-action: manipulation;
+    color: var(--lime);
+  }
+  .pad button:active { background: rgba(166, 242, 107, 0.2); }
+  .pad .up { grid-column: 2; grid-row: 1; }
+  .pad .left { grid-column: 1; grid-row: 2; }
+  .pad .down { grid-column: 2; grid-row: 2; }
+  .pad .right { grid-column: 3; grid-row: 2; }
+  .foot { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; }
+  .hint { color: var(--muted); font-size: 0.82rem; text-align: center; margin: 0; }
+  .ghost {
+    background: transparent;
+    border: 1px solid var(--btn-border);
+    border-radius: 999px;
+    padding: 5px 14px;
+    font-size: 0.82rem;
+    color: var(--muted);
+  }
+  @media (prefers-reduced-motion: reduce) { .primary { transition: none; } }
+</style>
+
+<main>
+  <header>
+    <h1>Culebra</h1>
+    <div class="scores">
+      <div class="chip"><span>Puntos</span><b id="score">0</b></div>
+      <div class="chip gold"><span>Récord</span><b id="best">0</b></div>
+    </div>
+  </header>
+
+  <div class="board-wrap">
+    <canvas id="board" aria-label="Tablero del juego"></canvas>
+    <div class="overlay" id="overlay">
+      <h2 id="ov-title">Culebra</h2>
+      <p id="ov-text">Comé manzanas, crecé y no te choques con las paredes ni con tu propia cola.</p>
+      <div class="legend" id="legend">
+        <span><i style="background:#ff4d4d"></i>Manzana +1</span>
+        <span><i style="background:#ffc93d"></i>Dorada +5</span>
+      </div>
+      <button class="primary" id="start" type="button">Jugar</button>
+    </div>
+  </div>
+
+  <div class="pad" aria-label="Controles">
+    <button class="up" type="button" data-dir="up" aria-label="Arriba">▲</button>
+    <button class="left" type="button" data-dir="left" aria-label="Izquierda">◀</button>
+    <button class="down" type="button" data-dir="down" aria-label="Abajo">▼</button>
+    <button class="right" type="button" data-dir="right" aria-label="Derecha">▶</button>
+  </div>
+  <div class="foot">
+    <p class="hint">Flechas o WASD. Espacio para empezar. En el celular, deslizá sobre el tablero.</p>
+    <button class="ghost" id="snd" type="button">Sonido: sí</button>
+  </div>
+</main>
+
+<script>
+(function () {
+  var N = 20, CELL = 24, W = N * CELL;
+  var dpr = Math.min(window.devicePixelRatio || 1, 2);
+  var canvas = document.getElementById('board');
+  canvas.width = W * dpr;
+  canvas.height = W * dpr;
+  var ctx = canvas.getContext('2d');
+  var overlay = document.getElementById('overlay');
+  var ovTitle = document.getElementById('ov-title');
+  var ovText = document.getElementById('ov-text');
+  var legend = document.getElementById('legend');
+  var startBtn = document.getElementById('start');
+  var scoreEl = document.getElementById('score');
+  var bestEl = document.getElementById('best');
+  var sndBtn = document.getElementById('snd');
+
+  var DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+  var snake, prevTail, dir, queue, food, foodBorn = 0, gold, grow, score, apples;
+  var best = 0, running = false, dead = false, stepAt = 0, interval = 150, shakeUntil = 0;
+  var particles = [], floaters = [];
+  var soundOn = true, ac = null;
+
+  try { best = parseInt(localStorage.getItem('culebra-best') || '0', 10) || 0; } catch (e) {}
+  bestEl.textContent = best;
+
+  /* ---------- fondo (se dibuja una sola vez) ---------- */
+  var bg = document.createElement('canvas');
+  bg.width = W * dpr; bg.height = W * dpr;
+  (function () {
+    var g = bg.getContext('2d');
+    g.scale(dpr, dpr);
+    for (var x = 0; x < N; x++) for (var y = 0; y < N; y++) {
+      g.fillStyle = (x + y) % 2 ? '#1a4a2c' : '#1e5431';
+      g.fillRect(x * CELL, y * CELL, CELL, CELL);
+    }
+    var seed = 7;
+    function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+    g.lineCap = 'round';
+    for (var i = 0; i < 260; i++) {
+      var px = rnd() * W, py = rnd() * W;
+      g.strokeStyle = rnd() > 0.5 ? 'rgba(160,240,120,0.16)' : 'rgba(0,0,0,0.14)';
+      g.lineWidth = 1.3;
+      g.beginPath();
+      g.moveTo(px, py); g.lineTo(px + (rnd() - 0.5) * 3, py - 3 - rnd() * 3);
+      g.moveTo(px + 2, py); g.lineTo(px + 2 + (rnd() - 0.5) * 3, py - 2 - rnd() * 3);
+      g.stroke();
+    }
+    var v = g.createRadialGradient(W / 2, W / 2, W * 0.35, W / 2, W / 2, W * 0.75);
+    v.addColorStop(0, 'rgba(0,0,0,0)');
+    v.addColorStop(1, 'rgba(0,12,6,0.55)');
+    g.fillStyle = v;
+    g.fillRect(0, 0, W, W);
+  })();
+
+  /* ---------- utilidades ---------- */
+  function mix(a, b, t) {
+    return 'rgb(' + Math.round(a[0] + (b[0] - a[0]) * t) + ',' + Math.round(a[1] + (b[1] - a[1]) * t) + ',' + Math.round(a[2] + (b[2] - a[2]) * t) + ')';
+  }
+  function lerpP(a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]; }
+  function easeOutBack(x) { var c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); }
+  function px(c) { return (c + 0.5) * CELL; }
+
+  /* ---------- sonido ---------- */
+  function tone(freq, dur, type, vol, delay) {
+    if (!soundOn) return;
+    try {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      var t0 = ac.currentTime + (delay || 0);
+      var o = ac.createOscillator(), g = ac.createGain();
+      o.type = type || 'sine';
+      o.frequency.setValueAtTime(freq, t0);
+      g.gain.setValueAtTime(vol || 0.08, t0);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.connect(g); g.connect(ac.destination);
+      o.start(t0); o.stop(t0 + dur + 0.02);
+    } catch (e) {}
+  }
+  sndBtn.addEventListener('click', function () {
+    soundOn = !soundOn;
+    sndBtn.textContent = 'Sonido: ' + (soundOn ? 'sí' : 'no');
+  });
+
+  /* ---------- juego ---------- */
+  function occupied(x, y) {
+    if (snake.some(function (s) { return s[0] === x && s[1] === y; })) return true;
+    if (gold && gold.x === x && gold.y === y) return true;
+    if (food && food[0] === x && food[1] === y) return true;
+    return false;
+  }
+  function randomFree() {
+    var free = [];
+    for (var x = 0; x < N; x++) for (var y = 0; y < N; y++) if (!occupied(x, y)) free.push([x, y]);
+    return free.length ? free[Math.floor(Math.random() * free.length)] : null;
+  }
+
+  function reset(now) {
+    snake = [[10, 10], [9, 10], [8, 10]];
+    prevTail = [8, 10];
+    dir = 'right'; queue = []; grow = 0; score = 0; apples = 0; gold = null; food = null;
+    dead = false; particles = []; floaters = [];
+    scoreEl.textContent = 0;
+    interval = 150;
+    food = randomFree();
+    foodBorn = now;
+  }
+
+  function setDir(d) {
+    var last = queue.length ? queue[queue.length - 1] : dir;
+    var a = DIRS[last], b = DIRS[d];
+    if (a[0] + b[0] === 0 && a[1] + b[1] === 0) return;
+    if (d === last) return;
+    if (queue.length < 2) queue.push(d);
+  }
+
+  function burst(x, y, colors, n, speed) {
+    for (var i = 0; i < n; i++) {
+      var a = Math.random() * Math.PI * 2, s = speed * (0.3 + Math.random() * 0.7);
+      var life = 0.35 + Math.random() * 0.45;
+      particles.push({ x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 30, life: life, max: life, color: colors[i % colors.length], size: 2 + Math.random() * 3 });
+    }
+  }
+  function floater(x, y, text, color) { floaters.push({ x: x, y: y, text: text, life: 0.9, color: color }); }
+
+  function step(now) {
+    if (queue.length) dir = queue.shift();
+    var d = DIRS[dir];
+    var head = [snake[0][0] + d[0], snake[0][1] + d[1]];
+    var eatA = food && head[0] === food[0] && head[1] === food[1];
+    var eatG = gold && head[0] === gold.x && head[1] === gold.y;
+    var willGrow = grow > 0 || eatA || eatG;
+    var body = willGrow ? snake : snake.slice(0, -1);
+    var hit = head[0] < 0 || head[1] < 0 || head[0] >= N || head[1] >= N ||
+      body.some(function (s) { return s[0] === head[0] && s[1] === head[1]; });
+    if (hit) return die(now);
+    snake.unshift(head);
+    if (eatA) {
+      score += 1; apples += 1; grow += 1;
+      burst(px(head[0]), px(head[1]), ['#ff4d4d', '#ff9a8a', '#ffd0c8'], 14, 140);
+      floater(px(head[0]), px(head[1]) - 10, '+1', '#ffffff');
+      tone(660, 0.09, 'triangle', 0.09); tone(880, 0.11, 'triangle', 0.08, 0.07);
+      food = randomFree(); foodBorn = now;
+      if (apples % 5 === 0 && !gold) {
+        var c = randomFree();
+        if (c) gold = { x: c[0], y: c[1], born: now, exp: now + 7000 };
+      }
+    }
+    if (eatG) {
+      score += 5; grow += 4;
+      burst(px(head[0]), px(head[1]), ['#ffc93d', '#fff0a8', '#ffffff'], 26, 190);
+      floater(px(head[0]), px(head[1]) - 10, '+5', '#ffc93d');
+      tone(660, 0.08, 'square', 0.05); tone(880, 0.08, 'square', 0.05, 0.07); tone(1320, 0.14, 'square', 0.05, 0.14);
+      gold = null;
+    }
+    scoreEl.textContent = score;
+    prevTail = snake[snake.length - 1];
+    if (grow > 0) grow--; else snake.pop();
+    interval = Math.max(72, 150 - score * 2.5);
+  }
+
+  function die(now) {
+    running = false; dead = true;
+    shakeUntil = now + 450;
+    burst(px(snake[0][0]), px(snake[0][1]), ['#5ff29a', '#2fc27a', '#c6ffd9'], 30, 200);
+    tone(220, 0.25, 'sawtooth', 0.07); tone(150, 0.35, 'sawtooth', 0.07, 0.15);
+    var record = score > best;
+    if (record) {
+      best = score; bestEl.textContent = best;
+      try { localStorage.setItem('culebra-best', String(best)); } catch (e) {}
+    }
+    setTimeout(function () {
+      if (running) return;
+      ovTitle.textContent = 'Game over';
+      ovText.textContent = score + (score === 1 ? ' punto' : ' puntos') + (record && score > 0 ? '. Nuevo récord.' : '.');
+      legend.hidden = true;
+      startBtn.textContent = 'Jugar de nuevo';
+      overlay.hidden = false;
+      startBtn.focus();
+    }, 700);
+  }
+
+  function start() {
+    var now = performance.now();
+    reset(now);
+    overlay.hidden = true;
+    running = true;
+    step(now);
+    stepAt = now;
+  }
+
+  /* ---------- dibujo ---------- */
+  function drawApple(cx, cy, r, c, now, born, sparkle) {
+    var sc = 1 + 0.05 * Math.sin(now / 200);
+    var age = Math.min(1, (now - born) / 320);
+    var pop = age < 1 ? easeOutBack(age) : 1;
+    ctx.save();
+    ctx.translate(cx, cy + Math.sin(now / 300) * 1.2);
+    ctx.scale(sc * pop, sc * pop);
+    ctx.shadowColor = c.glow; ctx.shadowBlur = 18;
+    var g = ctx.createRadialGradient(-r * 0.3, -r * 0.35, r * 0.1, 0, 0, r * 1.05);
+    g.addColorStop(0, c.light); g.addColorStop(0.55, c.main); g.addColorStop(1, c.dark);
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.ellipse(0, r * 0.05, r * 0.96, r * 0.88, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.beginPath(); ctx.ellipse(-r * 0.4, -r * 0.38, r * 0.2, r * 0.12, -0.6, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#6b3f1d'; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(0, -r * 0.78); ctx.quadraticCurveTo(r * 0.05, -r * 1.05, r * 0.2, -r * 1.2); ctx.stroke();
+    ctx.fillStyle = c.leaf;
+    ctx.beginPath(); ctx.ellipse(r * 0.5, -r * 1.0, r * 0.4, r * 0.18, -0.5, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    if (sparkle) {
+      for (var i = 0; i < 3; i++) {
+        var a = now / 500 + i * 2.09, rr = r * 1.5 + Math.sin(now / 150 + i) * 2;
+        var sx = cx + Math.cos(a) * rr, sy = cy + Math.sin(a) * rr, s = 2.4 + Math.sin(now / 120 + i * 2) * 1.2;
+        ctx.fillStyle = '#fff6c2';
+        ctx.beginPath();
+        ctx.moveTo(sx, sy - s * 2); ctx.lineTo(sx + s * 0.5, sy - s * 0.5); ctx.lineTo(sx + s * 2, sy);
+        ctx.lineTo(sx + s * 0.5, sy + s * 0.5); ctx.lineTo(sx, sy + s * 2); ctx.lineTo(sx - s * 0.5, sy + s * 0.5);
+        ctx.lineTo(sx - s * 2, sy); ctx.lineTo(sx - s * 0.5, sy - s * 0.5); ctx.closePath(); ctx.fill();
+      }
+    }
+  }
+
+  var RED = { main: '#e8262a', light: '#ff8a7a', dark: '#8f0f14', glow: 'rgba(255,77,77,0.8)', leaf: '#4ade80' };
+  var GOLD = { main: '#f5b400', light: '#fff2a6', dark: '#a86b00', glow: 'rgba(255,201,61,0.95)', leaf: '#b6e04a' };
+
+  function drawSnake(now, t) {
+    var n = snake.length;
+    var hd = lerpP(snake[1], snake[0], t);
+    var pts = [lerpP(prevTail, snake[n - 1], t)];
+    for (var i = n - 1; i >= 1; i--) pts.push(snake[i]);
+    pts.push(hd);
+    pts = pts.map(function (p) { return [px(p[0]), px(p[1])]; });
+
+    var segs = [], total = 0;
+    for (i = 0; i < pts.length - 1; i++) {
+      var L = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]);
+      segs.push(L); total += L;
+    }
+    var samples = [], dist = 0, next = 0, stepPx = 3;
+    for (i = 0; i < segs.length; i++) {
+      var L2 = segs[i];
+      if (L2 < 1e-6) continue;
+      while (next <= dist + L2) {
+        var f = (next - dist) / L2;
+        samples.push([pts[i][0] + (pts[i + 1][0] - pts[i][0]) * f, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * f, next / total]);
+        next += stepPx;
+      }
+      dist += L2;
+    }
+    function rad(u) { return CELL * (0.15 + 0.29 * Math.min(1, u * 6)); }
+
+    var TAIL = [12, 120, 84], HEAD = [98, 240, 152];
+    var k;
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    for (k = 0; k < samples.length; k++) {
+      ctx.beginPath(); ctx.arc(samples[k][0] + 2, samples[k][1] + 4, rad(samples[k][2]), 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = '#052a19';
+    for (k = 0; k < samples.length; k++) {
+      ctx.beginPath(); ctx.arc(samples[k][0], samples[k][1], rad(samples[k][2]) + 1.8, 0, Math.PI * 2); ctx.fill();
+    }
+    for (k = 0; k < samples.length; k++) {
+      ctx.fillStyle = mix(TAIL, HEAD, samples[k][2]);
+      ctx.beginPath(); ctx.arc(samples[k][0], samples[k][1], rad(samples[k][2]), 0, Math.PI * 2); ctx.fill();
+    }
+    for (k = 0; k < samples.length; k++) {
+      var s = samples[k], r = rad(s[2]);
+      ctx.fillStyle = 'rgba(255,255,255,0.10)';
+      ctx.beginPath(); ctx.arc(s[0] - 1.5, s[1] - 2.5, r * 0.55, 0, Math.PI * 2); ctx.fill();
+      if (k % 6 === 0) {
+        ctx.fillStyle = 'rgba(8,60,38,0.38)';
+        ctx.beginPath(); ctx.arc(s[0], s[1], r * 0.42, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    // cabeza
+    var dx = snake[0][0] - snake[1][0], dy = snake[0][1] - snake[1][1];
+    var ang = Math.atan2(dy, dx);
+    ctx.save();
+    ctx.translate(pts[pts.length - 1][0], pts[pts.length - 1][1]);
+    ctx.rotate(ang);
+    var ph = (now % 1400) / 1400;
+    if (!dead && ph < 0.28) {
+      var tl = Math.sin(ph / 0.28 * Math.PI) * CELL * 0.62;
+      ctx.strokeStyle = '#ff4d5e'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(CELL * 0.5, 0); ctx.lineTo(CELL * 0.5 + tl, 0);
+      ctx.moveTo(CELL * 0.5 + tl, 0); ctx.lineTo(CELL * 0.5 + tl + 3, -3);
+      ctx.moveTo(CELL * 0.5 + tl, 0); ctx.lineTo(CELL * 0.5 + tl + 3, 3);
+      ctx.stroke();
+    }
+    var hg = ctx.createRadialGradient(-2, -3, 2, 0, 0, 14);
+    hg.addColorStop(0, '#b4ffd0'); hg.addColorStop(1, '#2fc27a');
+    ctx.fillStyle = hg; ctx.strokeStyle = '#052a19'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(1, 0, CELL * 0.54, CELL * 0.47, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    for (var sgn = -1; sgn <= 1; sgn += 2) {
+      var ex = CELL * 0.13, ey = sgn * CELL * 0.24;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.arc(ex, ey, CELL * 0.17, 0, Math.PI * 2); ctx.fill();
+      if (dead) {
+        ctx.strokeStyle = '#052a19'; ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(ex - 2.5, ey - 2.5); ctx.lineTo(ex + 2.5, ey + 2.5);
+        ctx.moveTo(ex + 2.5, ey - 2.5); ctx.lineTo(ex - 2.5, ey + 2.5);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = '#0a1a10';
+        ctx.beginPath(); ctx.arc(ex + 2, ey, CELL * 0.09, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath(); ctx.arc(ex + 1.2, ey - 1.5, 1, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  function render(now, dt) {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, W);
+    var sx = 0, sy = 0;
+    if (now < shakeUntil) {
+      var kk = (shakeUntil - now) / 450;
+      sx = (Math.random() - 0.5) * 10 * kk; sy = (Math.random() - 0.5) * 10 * kk;
+    }
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.drawImage(bg, 0, 0, W, W);
+    if (food) drawApple(px(food[0]), px(food[1]), CELL * 0.4, RED, now, foodBorn, false);
+    if (gold) {
+      var frac = (gold.exp - now) / 7000;
+      var blink = frac < 0.22 && Math.floor(now / 140) % 2 === 0;
+      if (!blink) {
+        drawApple(px(gold.x), px(gold.y), CELL * 0.4, GOLD, now, gold.born, true);
+        ctx.strokeStyle = 'rgba(255,201,61,0.9)'; ctx.lineWidth = 2.4; ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.arc(px(gold.x), px(gold.y), CELL * 0.72, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.max(0, frac));
+        ctx.stroke();
+      }
+    }
+    var t = running ? Math.min(1, (now - stepAt) / interval) : 1;
+    drawSnake(now, t);
+
+    for (var i = particles.length - 1; i >= 0; i--) {
+      var p = particles[i];
+      p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 260 * dt;
+      if (p.life <= 0) { particles.splice(i, 1); continue; }
+      ctx.globalAlpha = Math.max(0, p.life / p.max);
+      ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (0.4 + 0.6 * p.life / p.max), 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.font = '700 22px Fredoka, system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.lineJoin = 'round';
+    for (i = floaters.length - 1; i >= 0; i--) {
+      var fl = floaters[i];
+      fl.life -= dt; fl.y -= 34 * dt;
+      if (fl.life <= 0) { floaters.splice(i, 1); continue; }
+      ctx.globalAlpha = Math.min(1, fl.life * 2);
+      ctx.strokeStyle = 'rgba(5,30,18,0.85)'; ctx.lineWidth = 4;
+      ctx.strokeText(fl.text, fl.x, fl.y);
+      ctx.fillStyle = fl.color;
+      ctx.fillText(fl.text, fl.x, fl.y);
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  var last = performance.now();
+  function frame(now) {
+    requestAnimationFrame(frame);
+    var dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    if (running) {
+      if (gold && now > gold.exp) gold = null;
+      if (now - stepAt >= interval) {
+        stepAt = (now - stepAt > interval * 2) ? now : stepAt + interval;
+        step(now);
+      }
+    }
+    render(now, dt);
+  }
+
+  /* ---------- controles ---------- */
+  document.addEventListener('keydown', function (e) {
+    var map = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', S: 'down', A: 'left', D: 'right' };
+    if (map[e.key]) { e.preventDefault(); if (running) setDir(map[e.key]); }
+    else if (e.key === ' ' && !running) { e.preventDefault(); start(); }
+  });
+  document.querySelectorAll('.pad button').forEach(function (b) {
+    b.addEventListener('click', function () { if (running) setDir(b.getAttribute('data-dir')); });
+  });
+  startBtn.addEventListener('click', start);
+
+  var tx = 0, ty = 0;
+  canvas.addEventListener('touchstart', function (e) { tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, { passive: true });
+  canvas.addEventListener('touchmove', function (e) {
+    if (!running) return;
+    var dx = e.touches[0].clientX - tx, dy = e.touches[0].clientY - ty;
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < 22) return;
+    setDir(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+    tx = e.touches[0].clientX; ty = e.touches[0].clientY;
+  }, { passive: true });
+
+  reset(performance.now());
+  requestAnimationFrame(frame);
+})();
+</script>
